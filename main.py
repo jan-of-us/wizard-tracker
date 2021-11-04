@@ -72,6 +72,9 @@ class GameRound(QMainWindow):
         button = self.pushButton
         button.setText("Next")
         button.clicked.connect(self.nextRound)
+        self.refresh()
+
+    def refresh(self):
         self.labelTitle.setText("Round: " + str(data.roundid) + " - " + str(data.type))
         self.label.setText(players[0].name)
         self.label_2.setText(players[1].name)
@@ -79,8 +82,20 @@ class GameRound(QMainWindow):
         self.label_4.setText(players[3].name)
 
     def nextRound(self):
-        self.setWindowTitle("Text")
-        trackround(data)
+
+        inputs = [self.spinBox.value(), self.spinBox_2.value(), self.spinBox_3.value(), self.spinBox_4.value()]
+        if sum(inputs) == data.roundid and data.type == Type.Prediction:
+            msg = QMessageBox()
+            msg.setText("Error")
+            msg.setInformativeText("Sum can't be same as rounds")
+            msg.setWindowTitle("Error")
+            msg.setStyleSheet("QLabel{min-width: 300px;}")
+            msg.exec_()
+        else:
+            trackround(data, inputs)
+            self.refresh()
+
+
 
 
     def closeEvent(self, event):
@@ -110,23 +125,42 @@ class Player:
 @dataclass
 class GameData:
     type: Type
-    roundid: int = 0
+    roundid: int = 1
     players: int = 0
 
 
 
-def trackround(data):
+def trackround(data, inputs):
+
+
     if data.type == Type.Prediction:
         data.type = Type.Results
+        print(sum(inputs))
+        i = 0
+        for player in players:
+            player.prediction = inputs[i]
+            i += 1
+        print(players)
 
-
-    if data.type == Type.Results:
+    elif data.type == Type.Results:
         data.type = Type.Prediction
-    data.roundid += 1
+        print("2")
+        i = 0
+        for player in players:
+            player.result = inputs[i]
+            i += 1
+            if player.result == player.prediction:
+                player.points += 20 + player.result * 10
+            elif player.result != player.prediction:
+                player.points -= 10 * abs(player.prediction - player.result)
+        print(players)
+        data.roundid += 1
 
 
 
-data = GameData(Type.Prediction, 0, 0)
+
+
+data = GameData(Type.Prediction, 1, 0)
 players = []
 
 def main():
@@ -138,5 +172,4 @@ def main():
 
 
 if __name__ == "__main__":
-
     main()
