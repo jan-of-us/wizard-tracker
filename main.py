@@ -41,7 +41,7 @@ class SetPlayers(QMainWindow):
     def startgame(self):
         data.players = 4  # TODO: Variable player count
         cards = 60  # 60 is standard / min. With special game variants up to ?  TODO
-        rounds = math.floor(cards / players) # TODO implement add into data
+        #rounds = math.floor(cards / players) # TODO implement add into data
 
 
         # TODO Refactor player creation to accommodate variable player count
@@ -154,7 +154,7 @@ def trackround(data, inputs):
 
     elif data.type == Type.Results:
         data.type = Type.Prediction
-        print("2")
+
         i = 0
         for player in players:
             player.result = inputs[i]
@@ -164,7 +164,7 @@ def trackround(data, inputs):
             elif player.result != player.prediction:
                 player.points -= 10 * abs(player.prediction - player.result)
             print(player)
-        playerranks(players)
+        # playerranks(players)
         print(players)
         data.roundid += 1
 
@@ -172,9 +172,10 @@ def trackround(data, inputs):
 data = GameData(Type.Prediction, 1, 0)
 players = []
 
-def playerranks(players):
-    """ Checks rank of player and tracks in playerdata """
+#def playerranks(players):
+#    """ Checks rank of player and tracks in playerdata """
     # TODO
+
 
 
 
