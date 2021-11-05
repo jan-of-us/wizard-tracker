@@ -151,13 +151,13 @@
     <property name="title">
      <string>Menu</string>
     </property>
-    <addaction name="actionMain_Menu"/>
+    <addaction name="actionMainMenu"/>
     <addaction name="actionExit"/>
    </widget>
    <addaction name="menuTest"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <action name="actionMain_Menu">
+  <action name="actionMainMenu">
    <property name="text">
     <string>Main Menu</string>
    </property>
