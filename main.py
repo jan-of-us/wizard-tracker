@@ -23,7 +23,6 @@ class MainMenu(QMainWindow):
 
     def newGame(self):
         self.newgame = SetPlayers(self)
-        # self.newgame.closed.connect(self.show) TODO open main menu when other windows are closed
         self.newgame.show()
         self.close()
 
@@ -31,15 +30,19 @@ class MainMenu(QMainWindow):
 class SetPlayers(QMainWindow):
     """ Window for setting Player count & names and how many cards are used """
 
-    closed = pyqtSignal()
-
     def __init__(self, parent=None):
         super(SetPlayers, self).__init__()
         uic.loadUi('set-players.ui', self)
         self.setWindowTitle("Wizard Tracker - Set Players")
+        self.setGeometry(1000, 400, 500, 450)
         button = self.pushButton
         button.setText("Start")
         button.clicked.connect(self.startgame)
+        menu = self.actionMainMenu
+        exit = self.actionExit
+
+        menu.triggered.connect(self.menu)
+        exit.triggered.connect(self.close)
 
     def startgame(self):
         data.players = 4  # TODO: Variable player count
@@ -65,12 +68,17 @@ class SetPlayers(QMainWindow):
 
         print(players)
         self.startgame = GameRound(self)
-        # self.startgame.closed.connect(self.show)
+
         self.startgame.show()
         self.close()
 
+    def menu(self):
+        if self.close():
+            self.menu = MainMenu()
+            self.menu.show()
+
+
     def closeEvent(self, event):
-        self.closed.emit()
 
         if self.sender() == self.pushButton:
             event.accept()
@@ -85,12 +93,11 @@ class SetPlayers(QMainWindow):
 class GameRound(QMainWindow):
     """ Main Game Window - Track data of rounds, check for errors """
 
-    closed = pyqtSignal()
-
     def __init__(self, parent=None):
         super(GameRound, self).__init__()
         uic.loadUi('main-game-rounds.ui', self)
         self.setWindowTitle("Wizard Tracker")
+        self.setGeometry(1000, 400, 400, 450)
         button = self.pushButton
         button.setText("Next")
         button.clicked.connect(self.nextround)
@@ -101,7 +108,7 @@ class GameRound(QMainWindow):
         menu = self.actionMainMenu
         exit = self.actionExit
 
-        menu.triggered.connect(self.menu) #TODO Menu functions
+        menu.triggered.connect(self.menu)
         exit.triggered.connect(self.close)
         self.refresh()
 
@@ -136,7 +143,7 @@ class GameRound(QMainWindow):
 
 
     def closeEvent(self, event):
-        self.closed.emit()
+
         msg = "Do you want to exit? All data will be lost!"
         reply = QMessageBox.question(self, 'Message', msg, QMessageBox.Yes, QMessageBox.No)
         if reply == QMessageBox.Yes:
