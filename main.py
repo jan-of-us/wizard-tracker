@@ -15,8 +15,11 @@ class MainMenu(QMainWindow):
         super(MainMenu, self).__init__()
         uic.loadUi('main-menu.ui', self)
         self.setWindowTitle("Wizard Tracker - Main Menu")
+        self.setGeometry(1000, 500, 0, 0)
         button = self.buttonNewGame
         button.clicked.connect(self.newGame)
+        exit = self.buttonExit
+        exit.clicked.connect(self.close)
 
     def newGame(self):
         self.newgame = SetPlayers(self)
@@ -41,7 +44,7 @@ class SetPlayers(QMainWindow):
     def startgame(self):
         data.players = 4  # TODO: Variable player count
         cards = 60  # 60 is standard / min. With special game variants up to ?  TODO
-        #rounds = math.floor(cards / players) # TODO implement add into data
+        rounds = math.floor(cards / data.players) # TODO implement add into data
 
 
         # TODO Refactor player creation to accommodate variable player count
@@ -68,7 +71,16 @@ class SetPlayers(QMainWindow):
 
     def closeEvent(self, event):
         self.closed.emit()
-        event.accept()
+
+        if self.sender() == self.pushButton:
+            event.accept()
+        else:
+            msg = "Do you want to exit? All data will be lost!"
+            reply = QMessageBox.question(self, 'Message', msg, QMessageBox.Yes, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                event.accept()
+            else:
+                event.ignore()
 
 class GameRound(QMainWindow):
     """ Main Game Window - Track data of rounds, check for errors """
@@ -86,12 +98,22 @@ class GameRound(QMainWindow):
         self.label_2.setText(players[1].name)
         self.label_3.setText(players[2].name)
         self.label_4.setText(players[3].name)
-        # self.actionMainMenu.triggered(self.close) TODO Menu functions
-        # self.actionExit.triggered(self.close)
+        menu = self.actionMainMenu
+        exit = self.actionExit
+
+        menu.triggered.connect(self.menu) #TODO Menu functions
+        exit.triggered.connect(self.close)
         self.refresh()
 
     def refresh(self):
         self.labelTitle.setText("Round: " + str(data.roundid) + " - " + str(data.type.name))
+
+    def menu(self):
+        if self.close():
+            self.menu = MainMenu()
+            self.menu.show()
+
+
 
     def nextround(self):
         """ Check if inputs are valid and if so track data and move to next """  # TODO: Descriptions
@@ -109,10 +131,18 @@ class GameRound(QMainWindow):
         else:
             trackround(data, inputs)
             self.refresh()
+            if data.roundid > data.rounds:
+                print("End")  # TODO: end game
+
 
     def closeEvent(self, event):
         self.closed.emit()
-        event.accept()
+        msg = "Do you want to exit? All data will be lost!"
+        reply = QMessageBox.question(self, 'Message', msg, QMessageBox.Yes, QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            event.accept()
+        else:
+            event.ignore()
 
 
 class Type(Enum):
@@ -136,9 +166,10 @@ class Player:
 
 @dataclass
 class GameData:
-    type: Type
+    type: Type = Type.Prediction
     roundid: int = 1
     players: int = 0  # player count
+    rounds: int = 15 # default for 4 players & 60 cards
 
 
 def trackround(data, inputs):
@@ -169,7 +200,7 @@ def trackround(data, inputs):
         data.roundid += 1
 
 
-data = GameData(Type.Prediction, 1, 0)
+data = GameData()
 players = []
 
 #def playerranks(players):
