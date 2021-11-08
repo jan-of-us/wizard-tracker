@@ -1,5 +1,6 @@
 import sys
 import math
+import sqlite3
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import pyqtSignal
@@ -46,14 +47,15 @@ class SetPlayers(QMainWindow):
 
     def startgame(self):
         playernames = (self.lineEdit.text(), self.lineEdit_2.text(), self.lineEdit_3.text(), self.lineEdit_4.text())
+        # playernames.remove("")
 
-        if "" in playernames:
+        if "" in playernames[0:3]:
             errormsg("Please enter playernames")
 
         else:
             data.players = 4  # TODO: Variable player count
             data.cards = 60  # 60 is standard / min. With special game variants up to ?  TODO: Set custom card count
-            data.rounds = math.floor(data.cards / data.players)
+            #data.rounds = math.floor(data.cards / data.players)
 
             for name in playernames:
                 p = Player(name)
@@ -132,16 +134,42 @@ class GameRound(QMainWindow):
             self.refresh()
             if data.roundid > data.rounds:
                 print("End")  # TODO: end game
+                self.end = GameEnd()
+                if self.close():
+                    self.end.show()
+
 
 
     def closeEvent(self, event):
-
-        msg = "Do you want to exit? All data will be lost!"
-        reply = QMessageBox.question(self, 'Message', msg, QMessageBox.Yes, QMessageBox.No)
-        if reply == QMessageBox.Yes:
+        if self.sender() == self.pushButton:
             event.accept()
         else:
-            event.ignore()
+            msg = "Do you want to exit? All data will be lost!"
+            reply = QMessageBox.question(self, 'Message', msg, QMessageBox.Yes, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                event.accept()
+            else:
+                event.ignore()
+
+class GameEnd(QMainWindow):
+    """ Display game results """
+
+    def __init__(self, parent=None):
+        super(GameEnd, self).__init__()
+        uic.loadUi('game-finished.ui', self)
+        self.setWindowTitle("Wizard Tracker - Game Results")
+        self.setGeometry(1000, 500, 0, 0)
+        button = self.buttonMainMenu
+        #button.clicked.connect(self.newGame)
+        exit = self.buttonExit
+        exit.clicked.connect(self.close)
+        results = self.label
+        output = ""
+        for player in players:
+            output = output + str(player) + '\n'
+
+        results.setText(output)
+
 
 
 class Type(Enum):
@@ -168,7 +196,7 @@ class GameData:
     type: Type = Type.Prediction
     roundid: int = 1
     players: int = 0  # player count
-    rounds: int = 15 # default for 4 players & 60 cards
+    rounds: int = 5 # default for 4 players & 60 cards TODO: changed for debugging
 
 
 def trackround(data, inputs):
