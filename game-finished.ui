@@ -72,6 +72,13 @@
       </layout>
      </item>
      <item>
+      <widget class="QPushButton" name="buttonNewRound">
+       <property name="text">
+        <string>New Round</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QPushButton" name="buttonMainMenu">
        <property name="text">
         <string>Main Menu</string>

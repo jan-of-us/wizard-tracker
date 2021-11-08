@@ -9,7 +9,7 @@ from PyQt5 import uic
 from dataclasses import dataclass
 from enum import Enum
 
-
+# TODO Variable names
 class MainMenu(QMainWindow):
     """ create main-menu ui and functions """
 
@@ -54,7 +54,7 @@ class SetPlayers(QMainWindow):
             errormsg("Please enter at least 3 players")
 
         else:
-            data.players = 4  # TODO: Variable player count
+            data.player_count = 4  # TODO: Variable player count
             data.cards = 60  # 60 is standard / min. With special game variants up to ?  TODO: Set custom card count
             #data.rounds = math.floor(data.cards / data.players)
 
@@ -160,15 +160,27 @@ class GameEnd(QMainWindow):
         uic.loadUi('game-finished.ui', self)
         self.setWindowTitle("Wizard Tracker - Game Results")
         self.setGeometry(1000, 500, 0, 0)
-        button = self.buttonMainMenu
-        button.clicked.connect(self.mainmenu)
+        menu = self.buttonMainMenu
+        menu.clicked.connect(self.mainmenu)
+        newround = self.buttonNewRound
+        newround.clicked.connect(self.new_round)
         exit = self.buttonExit
         exit.clicked.connect(self.close)
         results = self.label
         output = ""
+
+        # helper function for sorting
+        def get_rank(player):
+            return player.rank
+
+        # sort players by their rank
+        players.sort(key=get_rank)
+
+        # generate results string
         for player in players:
             output = output + str(player) + '\n'
 
+        # display results
         results.setText(output)
 
     def mainmenu(self):
@@ -177,6 +189,15 @@ class GameEnd(QMainWindow):
             data.reset()
             self.menu = MainMenu()
             self.menu.show()
+
+    def new_round(self):
+        if self.close():
+            for player in players:
+                player.points = 0
+                player.rank = 0
+            data.roundid = 1
+            self.new = GameRound()
+            self.new.show()
 
 
 
@@ -203,7 +224,7 @@ class Player:
 class GameData:
     type: Type = Type.Prediction
     roundid: int = 1
-    players: int = 0  # player count
+    player_count: int = 0  # player count
     rounds: int = 5 # default for 4 players & 60 cards TODO: changed for debugging
 
     def __init__(self):
@@ -238,17 +259,31 @@ def trackround(data, inputs):
                 player.points += 20 + player.result * 10
             elif player.result != player.prediction:
                 player.points -= 10 * abs(player.prediction - player.result)
-            print(player)
-        # playerranks(players)
-        print(players)
+
+        calculate_player_ranks(players)
+
         data.roundid += 1
 
 
 
 
-#def playerranks(players):
-#    """ Checks rank of player and tracks in playerdata """
+def calculate_player_ranks(players):
+    """ Calculate and refresh players ranks """
     # TODO
+    current_points = []
+    current_points.clear()
+    for player in players:
+        current_points.append(player.points)
+    current_points.sort(reverse=True)
+    print(current_points)
+    for player in players:
+        i = 1
+        for entry in current_points:
+            if entry == player.points:
+                player.rank = i
+                break
+            i += 1
+        print(player)
 
 
 def errormsg(message):
