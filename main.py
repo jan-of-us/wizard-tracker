@@ -47,16 +47,18 @@ class SetPlayers(QMainWindow):
         exit.triggered.connect(self.close)
 
     def startgame(self):
-        playernames = (self.lineEdit.text(), self.lineEdit_2.text(), self.lineEdit_3.text(), self.lineEdit_4.text())
-        # playernames.remove("")
 
-        if "" in playernames[0:3]:
+        playernames = [self.lineEdit.text(), self.lineEdit_2.text(), self.lineEdit_3.text(), self.lineEdit_4.text()]
+        while "" in playernames: # TODO variable player count: currently removes too much, starting with empty p4 field crashes
+            playernames.remove("")
+
+        if len(playernames) < 3:
             errormsg("Please enter at least 3 players")
 
         else:
             data.player_count = 4  # TODO: Variable player count
             data.cards = 60  # 60 is standard / min. With special game variants up to ?  TODO: Set custom card count
-            #data.rounds = math.floor(data.cards / data.players)
+            data.rounds = math.floor(data.cards / data.player_count)
 
             for name in playernames:
                 p = Player(name)
