@@ -1,3 +1,4 @@
+import os
 import sys
 import math
 import sqlite3
@@ -50,7 +51,7 @@ class SetPlayers(QMainWindow):
         # playernames.remove("")
 
         if "" in playernames[0:3]:
-            errormsg("Please enter playernames")
+            errormsg("Please enter at least 3 players")
 
         else:
             data.players = 4  # TODO: Variable player count
@@ -160,7 +161,7 @@ class GameEnd(QMainWindow):
         self.setWindowTitle("Wizard Tracker - Game Results")
         self.setGeometry(1000, 500, 0, 0)
         button = self.buttonMainMenu
-        #button.clicked.connect(self.newGame)
+        button.clicked.connect(self.mainmenu)
         exit = self.buttonExit
         exit.clicked.connect(self.close)
         results = self.label
@@ -169,6 +170,13 @@ class GameEnd(QMainWindow):
             output = output + str(player) + '\n'
 
         results.setText(output)
+
+    def mainmenu(self):
+        if self.close():
+            players.clear()
+            data.reset()
+            self.menu = MainMenu()
+            self.menu.show()
 
 
 
@@ -197,6 +205,15 @@ class GameData:
     roundid: int = 1
     players: int = 0  # player count
     rounds: int = 5 # default for 4 players & 60 cards TODO: changed for debugging
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.type = Type.Prediction
+        self.roundid = 1
+        self.players = 0
+        self.rounds = 5
 
 
 def trackround(data, inputs):
@@ -227,8 +244,7 @@ def trackround(data, inputs):
         data.roundid += 1
 
 
-data = GameData()
-players = []
+
 
 #def playerranks(players):
 #    """ Checks rank of player and tracks in playerdata """
@@ -249,6 +265,12 @@ def main():
     app = QApplication(sys.argv)
     mainmenu = MainMenu()
     mainmenu.show()
+    global data, players
+
+    data = GameData()
+    players = []
+
+
     sys.exit(app.exec_())
 
 
