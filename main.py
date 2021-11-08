@@ -45,32 +45,28 @@ class SetPlayers(QMainWindow):
         exit.triggered.connect(self.close)
 
     def startgame(self):
-        data.players = 4  # TODO: Variable player count
-        cards = 60  # 60 is standard / min. With special game variants up to ?  TODO
-        rounds = math.floor(cards / data.players) # TODO implement add into data
+        playernames = (self.lineEdit.text(), self.lineEdit_2.text(), self.lineEdit_3.text(), self.lineEdit_4.text())
+
+        if "" in playernames:
+            errormsg("Please enter playernames")
+
+        else:
+            data.players = 4  # TODO: Variable player count
+            data.cards = 60  # 60 is standard / min. With special game variants up to ?  TODO: Set custom card count
+            data.rounds = math.floor(data.cards / data.players)
+
+            for name in playernames:
+                p = Player(name)
+                print(p)
+                players.append(p)
 
 
-        # TODO Refactor player creation to accommodate variable player count
-        p1name = self.lineEdit.text()
-        p2name = self.lineEdit_2.text()
-        p3name = self.lineEdit_3.text()
-        p4name = self.lineEdit_4.text()
 
-        p1 = Player(p1name)
-        p2 = Player(p2name)
-        p3 = Player(p3name)
-        p4 = Player(p4name)
+            print(players)
+            self.startgame = GameRound(self)
 
-        players.append(p1)
-        players.append(p2)
-        players.append(p3)
-        players.append(p4)
-
-        print(players)
-        self.startgame = GameRound(self)
-
-        self.startgame.show()
-        self.close()
+            self.startgame.show()
+            self.close()
 
     def menu(self):
         if self.close():
@@ -129,12 +125,8 @@ class GameRound(QMainWindow):
 
         # Check if input conforms to game rule: Amount of tricks TODO: lookup "Stiche", != sum of predictions
         if sum(inputs) == data.roundid and data.type == Type.Prediction:
-            msg = QMessageBox()
-            msg.setText("Error")
-            msg.setInformativeText("Sum can't be same as rounds")
-            msg.setWindowTitle("Error")
-            msg.setStyleSheet("QLabel{min-width: 300px;}")
-            msg.exec_()
+            errormsg("Sum can't be equal to round!")
+
         else:
             trackround(data, inputs)
             self.refresh()
@@ -215,6 +207,13 @@ players = []
     # TODO
 
 
+def errormsg(message):
+    msg = QMessageBox()
+    msg.setText("Error")
+    msg.setInformativeText(message)
+    msg.setWindowTitle("Error")
+    msg.setStyleSheet("QLabel{min-width: 300px;}")
+    msg.exec_()
 
 
 
