@@ -1,12 +1,15 @@
 import sys
 import math
 import sqlite3
+from typing import List
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import pyqtSignal
 from PyQt5 import uic
 from dataclasses import dataclass
 from enum import Enum
+from pyqtgraph import PlotWidget, plot
+import pyqtgraph as pg
 
 
 class MainMenu(QMainWindow):
@@ -77,7 +80,7 @@ class SetPlayers(QMainWindow):
 
             # create "Player" for each player and add to list
             for name in player_names:
-                p = Player(name)
+                p = Player(name, [0])
                 player_data.append(p)
 
             # opens ui to start gameplay
@@ -176,9 +179,9 @@ class GameEnd(QMainWindow):
 
     def __init__(self, parent=None):
         super(GameEnd, self).__init__()
-        uic.loadUi('game-finished.ui', self)
+        uic.loadUi('game-finished_graph.ui', self)
         self.setWindowTitle("Wizard Tracker - Game Results")
-        self.setGeometry(1000, 500, 0, 0)
+        self.setGeometry(1000, 500, 3440, 1440)
 
         menu = self.buttonMainMenu
         menu.clicked.connect(self.mainmenu)
@@ -207,6 +210,32 @@ class GameEnd(QMainWindow):
         # display results
         results.setText(output)
 
+        """ Generate Plot """
+        # data creation for x axis
+        rounds = [0]
+        for i in range(data.rounds):
+            rounds.append(i+1)
+
+        # get min and max player points for y-axis range
+        min_y = player_data[len(player_data)-1].points - 10
+        max_y = player_data[0].points + 10
+        # if no player has less then 0 pts set range to begin at 0
+        if not min_y < 0:
+            min_y = 0
+
+        # plot properties
+        plt = self.graphWidget
+        plt.showGrid(x=True, y=True)
+        plt.addLegend()
+        plt.setXRange(0, data.rounds)
+        plt.setYRange(min_y, max_y)
+        plt.setLabel('left', 'Points')
+        plt.setLabel('bottom', 'Rounds')
+
+        # generate plot for each player
+        for i in range(data.player_count):
+            plt.plot(rounds, player_data[i].point_history, pen=(i, data.player_count), name=player_data[i].name)
+
     def mainmenu(self):
         if self.close():
             # clear data of last game from memory
@@ -222,6 +251,7 @@ class GameEnd(QMainWindow):
             for player in player_data:
                 player.points = 0
                 player.rank = 0
+                player.point_history.clear()
             # start at round 1
             data.round_id = 1
 
@@ -241,10 +271,12 @@ class Player:
     """ Holds player data and provides tool for sorting and printing results """
 
     name: str
+    point_history: list[int]
     points: int = 0
     prediction: int = 0
     result: int = 0
     rank: int = 0
+
 
     def __post_init__(self):
         self.sort_index = self.rank
@@ -298,8 +330,11 @@ def track_round(data, inputs):
                 player.points += 20 + player.result * 10
             elif player.result != player.prediction:
                 player.points -= 10 * abs(player.prediction - player.result)
+            player.point_history.append(player.points)
+            print(player.point_history)
 
         calculate_player_ranks(player_data)
+
         # move to next round
         data.round_id += 1
 
