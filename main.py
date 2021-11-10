@@ -42,7 +42,7 @@ class SetPlayers(QMainWindow):
         super(SetPlayers, self).__init__()
         uic.loadUi('set-players.ui', self)
         self.setWindowTitle("Wizard Tracker - Set Players")
-        self.setGeometry(1000, 400, 500, 450)  # TODO fixed size
+        self.setGeometry(1000, 400, 0, 0)
 
         btn_start = self.buttonStartGame
         btn_start.clicked.connect(self.start_game)
@@ -113,7 +113,7 @@ class GameRound(QMainWindow):
         super(GameRound, self).__init__()
         uic.loadUi('main-game-rounds.ui', self)
         self.setWindowTitle("Wizard Tracker")
-        self.setGeometry(1000, 400, 400, 450)  # TODO fixed size
+        self.setGeometry(1000, 400, 0, 0)
 
         btn_next = self.buttonNext
         btn_next.clicked.connect(self.next_round)
