@@ -8,7 +8,7 @@ from PyQt5 import uic
 from dataclasses import dataclass
 from enum import Enum
 
-# TODO Show dealer and first prediction
+
 class MainMenu(QMainWindow):
     """ create main-menu ui and functions """
 
@@ -59,7 +59,7 @@ class SetPlayers(QMainWindow):
         # get inputs from .ui form, convert to text/string and create list
         player_names = [self.le_name_p1.text(), self.le_name_p2.text(), self.le_name_p3.text(), self.le_name_p4.text()]
 
-        # while "" in player_names: # TODO variable player count: currently removes too much, starting with empty p4 field crashes
+        # while "" in player_names: todo
         #     player_names.remove("")
 
         # if len(player_names) < 3:
@@ -68,9 +68,11 @@ class SetPlayers(QMainWindow):
             error_msg("Please enter all players")
 
         else:
-            # calculations needed for non-standard card/player counts
-            data.player_count = 4  # TODO: Variable player count
-            data.cards = 60  # 60 is standard / min. With special game variants up to ?  TODO: Set custom card count
+            # needed for non-standard player count, todo
+            data.player_count = 4
+
+            # set card count to given value, calculate rounds
+            data.cards = self.inp_card_count.value()  # 60 is standard / min. With special game variants up to 75
             data.rounds = math.floor(data.cards / data.player_count)
 
             # create "Player" for each player and add to list

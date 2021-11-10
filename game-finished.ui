@@ -98,6 +98,7 @@
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <tabstops>
+  <tabstop>buttonNewRound</tabstop>
   <tabstop>buttonMainMenu</tabstop>
   <tabstop>buttonExit</tabstop>
  </tabstops>
