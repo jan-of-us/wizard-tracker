@@ -1,4 +1,3 @@
-import os
 import sys
 import math
 import sqlite3
@@ -9,79 +8,92 @@ from PyQt5 import uic
 from dataclasses import dataclass
 from enum import Enum
 
-# TODO Variable names
+# TODO Show dealer and first prediction
 class MainMenu(QMainWindow):
     """ create main-menu ui and functions """
 
     def __init__(self, parent=None):
         super(MainMenu, self).__init__()
+
+        # load corresponding .ui file
         uic.loadUi('main-menu.ui', self)
         self.setWindowTitle("Wizard Tracker - Main Menu")
-        self.setGeometry(1000, 500, 0, 0)
-        button = self.buttonNewGame
-        button.clicked.connect(self.newGame)
-        exit = self.buttonExit
-        exit.clicked.connect(self.close)
 
-    def newGame(self):
-        self.newgame = SetPlayers(self)
-        self.newgame.show()
+        # Only position matters, size is fixed in .ui
+        self.setGeometry(1000, 500, 0, 0)
+
+        # button functions
+        btn_new_game = self.buttonNewGame
+        btn_new_game.clicked.connect(self.start_new_game)
+        btn_exit = self.buttonExit
+        btn_exit.clicked.connect(self.close)
+
+    # Opens new window to input player names
+    def start_new_game(self):
+        self.new_game = SetPlayers(self)
+        self.new_game.show()
         self.close()
 
 
 class SetPlayers(QMainWindow):
-    """ Window for setting Player count & names and how many cards are used """
+    """ Window for setting Player (count &) names and how many cards are used """
 
     def __init__(self, parent=None):
         super(SetPlayers, self).__init__()
         uic.loadUi('set-players.ui', self)
         self.setWindowTitle("Wizard Tracker - Set Players")
-        self.setGeometry(1000, 400, 500, 450)
-        button = self.pushButton
-        button.setText("Start")
-        button.clicked.connect(self.startgame)
-        menu = self.actionMainMenu
-        exit = self.actionExit
+        self.setGeometry(1000, 400, 500, 450)  # TODO fixed size
 
-        menu.triggered.connect(self.menu)
-        exit.triggered.connect(self.close)
+        btn_start = self.buttonStartGame
+        btn_start.clicked.connect(self.start_game)
+        act_menu = self.actionMainMenu
+        act_exit = self.actionExit
 
-    def startgame(self):
+        # action menu functions
+        act_menu.triggered.connect(self.menu)
+        act_exit.triggered.connect(self.close)
 
-        playernames = [self.lineEdit.text(), self.lineEdit_2.text(), self.lineEdit_3.text(), self.lineEdit_4.text()]
-        while "" in playernames: # TODO variable player count: currently removes too much, starting with empty p4 field crashes
-            playernames.remove("")
+    def start_game(self):
+        """ Will check for sufficient inputs and create needed data for players """
 
-        if len(playernames) < 3:
-            errormsg("Please enter at least 3 players")
+        # get inputs from .ui form, convert to text/string and create list
+        player_names = [self.le_name_p1.text(), self.le_name_p2.text(), self.le_name_p3.text(), self.le_name_p4.text()]
+
+        # while "" in player_names: # TODO variable player count: currently removes too much, starting with empty p4 field crashes
+        #     player_names.remove("")
+
+        # if len(player_names) < 3:
+        # check if all names are given, if not raise error
+        if "" in player_names:
+            error_msg("Please enter all players")
 
         else:
+            # calculations needed for non-standard card/player counts
             data.player_count = 4  # TODO: Variable player count
             data.cards = 60  # 60 is standard / min. With special game variants up to ?  TODO: Set custom card count
             data.rounds = math.floor(data.cards / data.player_count)
 
-            for name in playernames:
+            # create "Player" for each player and add to list
+            for name in player_names:
                 p = Player(name)
-                print(p)
-                players.append(p)
+                player_data.append(p)
 
-
-
-            print(players)
+            # opens ui to start gameplay
             self.startgame = GameRound(self)
-
             self.startgame.show()
             self.close()
 
+    # open main menu
     def menu(self):
         if self.close():
             self.menu = MainMenu()
             self.menu.show()
 
-
+    # custom close event to ask for confirmation before closing so no data is lost by accident
     def closeEvent(self, event):
 
-        if self.sender() == self.pushButton:
+        # no confirmation needed if closed by "start game" button
+        if self.sender() == self.buttonStartGame:
             event.accept()
         else:
             msg = "Do you want to exit? All data will be lost!"
@@ -90,6 +102,7 @@ class SetPlayers(QMainWindow):
                 event.accept()
             else:
                 event.ignore()
+
 
 class GameRound(QMainWindow):
     """ Main Game Window - Track data of rounds, check for errors """
@@ -98,53 +111,54 @@ class GameRound(QMainWindow):
         super(GameRound, self).__init__()
         uic.loadUi('main-game-rounds.ui', self)
         self.setWindowTitle("Wizard Tracker")
-        self.setGeometry(1000, 400, 400, 450)
-        button = self.pushButton
-        button.setText("Next")
-        button.clicked.connect(self.nextround)
-        self.label.setText(players[0].name)
-        self.label_2.setText(players[1].name)
-        self.label_3.setText(players[2].name)
-        self.label_4.setText(players[3].name)
-        menu = self.actionMainMenu
-        exit = self.actionExit
+        self.setGeometry(1000, 400, 400, 450)  # TODO fixed size
 
-        menu.triggered.connect(self.menu)
-        exit.triggered.connect(self.close)
+        btn_next = self.buttonNext
+        btn_next.clicked.connect(self.next_round)
+
+        self.label_name_p1.setText(player_data[0].name)
+        self.label_name_p2.setText(player_data[1].name)
+        self.label_name_p3.setText(player_data[2].name)
+        self.label_name_p4.setText(player_data[3].name)
+
+        act_menu = self.actionMainMenu
+        act_exit = self.actionExit
+        act_menu.triggered.connect(self.menu)
+        act_exit.triggered.connect(self.close)
+
+        # refresh ui each round to show current round and expected input type
         self.refresh()
 
     def refresh(self):
-        self.labelTitle.setText("Round: " + str(data.roundid) + " - " + str(data.type.name))
+        self.labelTitle.setText("Round: " + str(data.round_id) + " - " + str(data.type.name))
+
+    def next_round(self):
+        """ Check if inputs are valid and if so track data and move to next round """
+
+        inputs = [self.inp_p1.value(), self.inp_p2.value(), self.inp_p3.value(), self.inp_p4.value()]
+
+        # Check if input conforms to game rule: Amount of tricks != sum of predictions
+        if sum(inputs) == data.round_id and data.type == Type.Prediction:
+            error_msg("Sum can't be equal to round!")
+
+        else:
+            track_round(data, inputs)
+            self.refresh()
+
+            # detect when final round is played and show ending window
+            if data.round_id > data.rounds:
+                self.end = GameEnd()
+                if self.close():
+                    self.end.show()
 
     def menu(self):
         if self.close():
             self.menu = MainMenu()
             self.menu.show()
 
-
-
-    def nextround(self):
-        """ Check if inputs are valid and if so track data and move to next """  # TODO: Descriptions
-
-        inputs = [self.spinBox.value(), self.spinBox_2.value(), self.spinBox_3.value(), self.spinBox_4.value()]
-
-        # Check if input conforms to game rule: Amount of tricks TODO: lookup "Stiche", != sum of predictions
-        if sum(inputs) == data.roundid and data.type == Type.Prediction:
-            errormsg("Sum can't be equal to round!")
-
-        else:
-            trackround(data, inputs)
-            self.refresh()
-            if data.roundid > data.rounds:
-                print("End")  # TODO: end game
-                self.end = GameEnd()
-                if self.close():
-                    self.end.show()
-
-
-
+    # ask for confirmation before exiting
     def closeEvent(self, event):
-        if self.sender() == self.pushButton:
+        if self.sender() == self.buttonNext:
             event.accept()
         else:
             msg = "Do you want to exit? All data will be lost!"
@@ -153,6 +167,7 @@ class GameRound(QMainWindow):
                 event.accept()
             else:
                 event.ignore()
+
 
 class GameEnd(QMainWindow):
     """ Display game results """
@@ -162,13 +177,18 @@ class GameEnd(QMainWindow):
         uic.loadUi('game-finished.ui', self)
         self.setWindowTitle("Wizard Tracker - Game Results")
         self.setGeometry(1000, 500, 0, 0)
+
         menu = self.buttonMainMenu
         menu.clicked.connect(self.mainmenu)
-        newround = self.buttonNewRound
-        newround.clicked.connect(self.new_round)
+
+        # ability to play new round with same players
+        new_game = self.buttonNewRound
+        new_game.clicked.connect(self.new_round)
         exit = self.buttonExit
         exit.clicked.connect(self.close)
-        results = self.label
+
+        # display results of last round
+        results = self.label_results
         output = ""
 
         # helper function for sorting
@@ -176,10 +196,10 @@ class GameEnd(QMainWindow):
             return player.rank
 
         # sort players by their rank
-        players.sort(key=get_rank)
+        player_data.sort(key=get_rank)
 
         # generate results string
-        for player in players:
+        for player in player_data:
             output = output + str(player) + '\n'
 
         # display results
@@ -187,22 +207,28 @@ class GameEnd(QMainWindow):
 
     def mainmenu(self):
         if self.close():
-            players.clear()
+            # clear data of last game from memory
+            player_data.clear()
             data.reset()
+
             self.menu = MainMenu()
             self.menu.show()
 
     def new_round(self):
         if self.close():
-            for player in players:
+            # reset points and rank of players
+            for player in player_data:
                 player.points = 0
                 player.rank = 0
-            data.roundid = 1
+            # start at round 1
+            data.round_id = 1
+
+            # launch into game
             self.new = GameRound()
             self.new.show()
 
 
-
+# defines which type of input is expected
 class Type(Enum):
     Prediction = 0
     Results = 1
@@ -210,6 +236,8 @@ class Type(Enum):
 
 @dataclass
 class Player:
+    """ Holds player data and provides tool for sorting and printing results """
+
     name: str
     points: int = 0
     prediction: int = 0
@@ -222,63 +250,71 @@ class Player:
     def __str__(self):
         return f'{self.name} has {self.points} points and is currently on rank {self.rank}'
 
+
 @dataclass
 class GameData:
+    """ Holds game data, provide reset function """
+
     type: Type = Type.Prediction
-    roundid: int = 1
-    player_count: int = 0  # player count
-    rounds: int = 5 # default for 4 players & 60 cards TODO: changed for debugging
+    round_id: int = 1
+    player_count: int = 4  # player count
+    rounds: int = 15  # default for 4 players & 60 cards
 
     def __init__(self):
         self.reset()
 
     def reset(self):
         self.type = Type.Prediction
-        self.roundid = 1
-        self.players = 0
-        self.rounds = 5
+        self.round_id = 1
+        self.player_count = 4
+        self.rounds = 15
 
 
-def trackround(data, inputs):
+def track_round(data, inputs):
+    """ write data from inputs, calculate round outcome and player points """
 
+    # if Predictions are given save to player data
     if data.type == Type.Prediction:
         data.type = Type.Results
-        print(sum(inputs))
         i = 0
-        for player in players:
+        for player in player_data:
             player.prediction = inputs[i]
             i += 1
-        print(players)
 
+    # results: calculate player points and save to player data
     elif data.type == Type.Results:
         data.type = Type.Prediction
 
+        # needed to get players input from list
         i = 0
-        for player in players:
+        for player in player_data:
             player.result = inputs[i]
             i += 1
+
+            # calculate players points for right / wrong predictions and update player data
             if player.result == player.prediction:
                 player.points += 20 + player.result * 10
             elif player.result != player.prediction:
                 player.points -= 10 * abs(player.prediction - player.result)
 
-        calculate_player_ranks(players)
-
-        data.roundid += 1
-
-
+        calculate_player_ranks(player_data)
+        # move to next round
+        data.round_id += 1
 
 
-def calculate_player_ranks(players):
+def calculate_player_ranks(player_data):
     """ Calculate and refresh players ranks """
-    # TODO
+
     current_points = []
     current_points.clear()
-    for player in players:
+
+    # put player points in ordered list
+    for player in player_data:
         current_points.append(player.points)
     current_points.sort(reverse=True)
-    print(current_points)
-    for player in players:
+
+    # check players points against sorted list to calculate rank
+    for player in player_data:
         i = 1
         for entry in current_points:
             if entry == player.points:
@@ -288,7 +324,8 @@ def calculate_player_ranks(players):
         print(player)
 
 
-def errormsg(message):
+def error_msg(message):
+    """ Show error dialog with given message """
     msg = QMessageBox()
     msg.setText("Error")
     msg.setInformativeText(message)
@@ -297,17 +334,15 @@ def errormsg(message):
     msg.exec_()
 
 
-
 def main():
+    """ Start app, init variables, show main menu """
+
     app = QApplication(sys.argv)
     mainmenu = MainMenu()
     mainmenu.show()
-    global data, players
-
+    global data, player_data
     data = GameData()
-    players = []
-
-
+    player_data = []
     sys.exit(app.exec_())
 
 
