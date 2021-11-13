@@ -1,7 +1,7 @@
 import sys
 import math
 import sqlite3
-from typing import List
+import time
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import pyqtSignal
@@ -28,6 +28,10 @@ class MainMenu(QMainWindow):
         # button functions
         btn_new_game = self.buttonNewGame
         btn_new_game.clicked.connect(self.start_new_game)
+
+        btn_history = self.buttonHistory
+        btn_history.clicked.connect(self.show_history)
+
         btn_exit = self.buttonExit
         btn_exit.clicked.connect(self.close)
 
@@ -35,6 +39,11 @@ class MainMenu(QMainWindow):
     def start_new_game(self):
         self.new_game = SetPlayers(self)
         self.new_game.show()
+        self.close()
+
+    def show_history(self):
+        self.history = History(self)
+        self.history.show()
         self.close()
 
 
@@ -179,7 +188,7 @@ class GameEnd(QMainWindow):
 
     def __init__(self, parent=None):
         super(GameEnd, self).__init__()
-        uic.loadUi('game-finished_graph.ui', self)
+        uic.loadUi('game-finished.ui', self)
         self.setWindowTitle("Wizard Tracker - Game Results")
         self.setGeometry(1000, 500, 3440, 1440)
 
@@ -236,6 +245,17 @@ class GameEnd(QMainWindow):
         for i in range(data.player_count):
             plt.plot(rounds, player_data[i].point_history, pen=(i, data.player_count), name=player_data[i].name)
 
+        # Write results to database
+        timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
+        db.execute("INSERT INTO games VALUES (null, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                   (timestamp, data.rounds,
+                    player_data[0].name, str(player_data[0].point_history),
+                    player_data[1].name, str(player_data[1].point_history),
+                    player_data[2].name, str(player_data[2].point_history),
+                    player_data[3].name, str(player_data[3].point_history)))
+        db_file.commit()
+        db_file.close()
+
     def mainmenu(self):
         if self.close():
             # clear data of last game from memory
@@ -260,6 +280,101 @@ class GameEnd(QMainWindow):
             self.new.show()
 
 
+class History(QMainWindow):
+
+    def __init__(self, parent=None):
+        super(History, self).__init__()
+        uic.loadUi('history.ui', self)
+        self.setWindowTitle("Wizard Tracker - History")
+        self.setGeometry(0, 0, 1200, 1440)
+
+        menu = self.buttonMainMenu
+        menu.clicked.connect(self.mainmenu)
+        exit = self.buttonExit
+        exit.clicked.connect(self.close)
+
+        db.execute("SELECT id, time, p1_name, p2_name, p3_name, p4_name FROM games")
+        games = db.fetchall()
+        selection = []
+        for game in games:
+            sel_entry = ""
+            for entry in game:
+                sel_entry = sel_entry + " " + str(entry)
+            selection.append(sel_entry)
+            print(sel_entry)
+
+        # display choice
+        game_select = self.cB_selGame
+        game_select.addItems(selection)
+        game_select.activated[str].connect(self.display_results)
+
+
+
+    def mainmenu(self):
+        if self.close():
+            self.menu = MainMenu()
+            self.menu.show()
+
+    def display_results(self):
+        box = self.sender()
+        selected = box.currentText()
+
+
+        game_id = selected.split()[0]
+
+        # Query for results
+        db.execute('''SELECT rounds, p1_name, p1_pts, p2_name, p2_pts, p3_name, p3_pts, p4_name, p4_pts 
+                    FROM games WHERE id = ?''', [int(game_id)])
+        results = db.fetchall()
+        results = results[0]
+        print(results)
+
+
+        rounds = int(results[0])
+
+        """ Generate Plot """
+        # data creation for x axis
+        round_count = [0]
+        for i in range(rounds):
+            round_count.append(i+1)
+
+        p_data = []
+        for i in range(1, 9, 2):
+            p_name = results[i]
+
+            p_points = results[i + 1].split()
+            p_points_clean = []
+            for point in p_points:
+                p_points_clean.append(int(point.strip(",[]")))
+            p_data.append(p_name)
+            p_data.append(p_points_clean)
+
+
+        # get min and max player points for y-axis range
+        min_y = -500
+        max_y = 500
+        # if no player has less then 0 pts set range to begin at 0
+        if not min_y < 0:
+            min_y = 0
+
+        # plot properties
+        plt = self.graphWidget
+        plt.showGrid(x=True, y=True)
+        plt.addLegend()
+        plt.setXRange(0, data.rounds)
+        plt.setYRange(min_y, max_y)
+        plt.setLabel('left', 'Points')
+        plt.setLabel('bottom', 'Rounds')
+
+        # generate plot for each player
+        j = 0
+        for i in range(0, 8, 2):
+            name = p_data[i]
+            points = p_data[i + 1]
+            plt.plot(round_count, points, pen=(j, 4), name=name)
+            j += 1
+
+
 # defines which type of input is expected
 class Type(Enum):
     Prediction = 0
@@ -268,7 +383,7 @@ class Type(Enum):
 
 @dataclass
 class Player:
-    """ Holds player data and provides tool for sorting and printing results """
+    """ Holds player data and provides tool for sorting and printing """
 
     name: str
     point_history: list[int]
@@ -375,11 +490,30 @@ def main():
     """ Start app, init variables, show main menu """
 
     app = QApplication(sys.argv)
+    global data, player_data, db, db_file
+
+    # create database to store history
+    db_file = sqlite3.connect('wizard-history.db')
+    db = db_file.cursor()
+    # if table doesn't exist create from scratch
+    db.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name='games' ")
+    if db.fetchone()[0] == 0:
+        db.execute('''CREATE TABLE games
+                              (ID INTEGER PRIMARY KEY   AUTOINCREMENT,
+                              TIME      DATETIME    NOT NULL,
+                              ROUNDS INTEGER,
+                              P1_NAME TEXT, P1_PTS TEXT,
+                              P2_NAME TEXT, P2_PTS TEXT,
+                              P3_NAME TEXT, P3_PTS TEXT,
+                              P4_NAME TEXT, P4_PTS TEXT);''')
+
+    # shoow main menu
     mainmenu = MainMenu()
     mainmenu.show()
-    global data, player_data
+
     data = GameData()
     player_data = []
+
     sys.exit(app.exec_())
 
 
