@@ -70,7 +70,7 @@
      <item>
       <widget class="QPushButton" name="buttonHistory">
        <property name="text">
-        <string>Stats</string>
+        <string>History</string>
        </property>
       </widget>
      </item>

@@ -4,19 +4,16 @@ import sqlite3
 import time
 
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import pyqtSignal
 from PyQt5 import uic
 from dataclasses import dataclass
 from enum import Enum
-from pyqtgraph import PlotWidget, plot
-import pyqtgraph as pg
 
 
 class MainMenu(QMainWindow):
     """ create main-menu ui and functions """
 
     def __init__(self, parent=None):
-        super(MainMenu, self).__init__()
+        super().__init__()
 
         # load corresponding .ui file
         uic.loadUi('main-menu.ui', self)
@@ -37,12 +34,12 @@ class MainMenu(QMainWindow):
 
     # Opens new window to input player names
     def start_new_game(self):
-        self.new_game = SetPlayers(self)
+        self.new_game = SetPlayers()
         self.new_game.show()
         self.close()
 
     def show_history(self):
-        self.history = History(self)
+        self.history = History()
         self.history.show()
         self.close()
 
@@ -51,7 +48,7 @@ class SetPlayers(QMainWindow):
     """ Window for setting Player (count &) names and how many cards are used """
 
     def __init__(self, parent=None):
-        super(SetPlayers, self).__init__()
+        super().__init__()
         uic.loadUi('set-players.ui', self)
         self.setWindowTitle("Wizard Tracker - Set Players")
         self.setGeometry(1000, 400, 0, 0)
@@ -122,7 +119,7 @@ class GameRound(QMainWindow):
     """ Main Game Window - Track data of rounds, check for errors """
 
     def __init__(self, parent=None):
-        super(GameRound, self).__init__()
+        super().__init__()
         uic.loadUi('main-game-rounds.ui', self)
         self.setWindowTitle("Wizard Tracker")
         self.setGeometry(1000, 400, 0, 0)
@@ -156,7 +153,7 @@ class GameRound(QMainWindow):
             error_msg("Sum can't be equal to round!")
 
         else:
-            track_round(data, inputs)
+            track_round(inputs)
             self.refresh()
 
             # detect when final round is played and show ending window
@@ -187,7 +184,7 @@ class GameEnd(QMainWindow):
     """ Display game results """
 
     def __init__(self, parent=None):
-        super(GameEnd, self).__init__()
+        super().__init__()
         uic.loadUi('game-finished.ui', self)
         self.setWindowTitle("Wizard Tracker - Game Results")
         self.setGeometry(1000, 500, 3440, 1440)
@@ -213,17 +210,19 @@ class GameEnd(QMainWindow):
         player_data.sort(key=get_rank)
 
         # generate results string
+        i = 1
         for player in player_data:
-            output = output + str(player) + '\n'
+            output = output + str(i) + ". Rank: "+ player.name + " with " + str(player.points) + " points." + '\n'
 
         # display results
         results.setText(output)
 
         """ Generate Plot """
         # data creation for x axis
-        rounds = [0]
-        for i in range(data.rounds):
-            rounds.append(i+1)
+        rounds = []
+        rounds.clear()
+        for i in range(data.rounds + 1):
+            rounds.append(i)
 
         # get min and max player points for y-axis range
         min_y = player_data[len(player_data)-1].points - 10
@@ -254,7 +253,6 @@ class GameEnd(QMainWindow):
                     player_data[2].name, str(player_data[2].point_history),
                     player_data[3].name, str(player_data[3].point_history)))
         db_file.commit()
-        db_file.close()
 
     def mainmenu(self):
         if self.close():
@@ -272,6 +270,7 @@ class GameEnd(QMainWindow):
                 player.points = 0
                 player.rank = 0
                 player.point_history.clear()
+                player.point_history = [0]
             # start at round 1
             data.round_id = 1
 
@@ -281,19 +280,20 @@ class GameEnd(QMainWindow):
 
 
 class History(QMainWindow):
-
+    """ Show results of previously played games """
     def __init__(self, parent=None):
-        super(History, self).__init__()
+        super().__init__()
         uic.loadUi('history.ui', self)
         self.setWindowTitle("Wizard Tracker - History")
-        self.setGeometry(0, 0, 1200, 1440)
+        self.setGeometry(0, 0, 1400, 1080)
 
         menu = self.buttonMainMenu
         menu.clicked.connect(self.mainmenu)
         exit = self.buttonExit
         exit.clicked.connect(self.close)
 
-        db.execute("SELECT id, time, p1_name, p2_name, p3_name, p4_name FROM games")
+        # get list of games for selection
+        db.execute("SELECT id, time, p1_name, p2_name, p3_name, p4_name FROM games ORDER BY id DESC")
         games = db.fetchall()
         selection = []
         for game in games:
@@ -301,14 +301,12 @@ class History(QMainWindow):
             for entry in game:
                 sel_entry = sel_entry + " " + str(entry)
             selection.append(sel_entry)
-            print(sel_entry)
 
-        # display choice
+        # display choice / results of most recent are displayed by default
         game_select = self.cB_selGame
         game_select.addItems(selection)
         game_select.activated[str].connect(self.display_results)
-
-
+        self.display_results()
 
     def mainmenu(self):
         if self.close():
@@ -316,19 +314,17 @@ class History(QMainWindow):
             self.menu.show()
 
     def display_results(self):
-        box = self.sender()
+        # get selected game from Dropdown
+        box = self.cB_selGame
         selected = box.currentText()
 
-
+        # get id from selection
         game_id = selected.split()[0]
 
         # Query for results
         db.execute('''SELECT rounds, p1_name, p1_pts, p2_name, p2_pts, p3_name, p3_pts, p4_name, p4_pts 
                     FROM games WHERE id = ?''', [int(game_id)])
-        results = db.fetchall()
-        results = results[0]
-        print(results)
-
+        results = db.fetchall()[0]
 
         rounds = int(results[0])
 
@@ -338,10 +334,10 @@ class History(QMainWindow):
         for i in range(rounds):
             round_count.append(i+1)
 
+        # data collection and cleanup for y-axis
         p_data = []
         for i in range(1, 9, 2):
             p_name = results[i]
-
             p_points = results[i + 1].split()
             p_points_clean = []
             for point in p_points:
@@ -349,19 +345,25 @@ class History(QMainWindow):
             p_data.append(p_name)
             p_data.append(p_points_clean)
 
+        # data generation for text display of results
+        ranks_str = "Choose a game from the dropdown to display the results! \nThis game's results: \n"
+        j = 1
+        for i in range(0, 8, 2):
+            ranks_str = ranks_str + str(j) + ". Rank: " + p_data[i] + \
+                        " with " + str(p_data[i + 1][rounds]) + " points. \n"
+            j += 1
+        self.label_results.setText(ranks_str)
 
         # get min and max player points for y-axis range
-        min_y = -500
-        max_y = 500
-        # if no player has less then 0 pts set range to begin at 0
-        if not min_y < 0:
-            min_y = 0
+        min_y = min([min(p_data[x]) for x in range(1, 8, 2)])
+        max_y = max([max(p_data[x]) for x in range(1, 8, 2)])
 
         # plot properties
         plt = self.graphWidget
+        plt.clear()
         plt.showGrid(x=True, y=True)
         plt.addLegend()
-        plt.setXRange(0, data.rounds)
+        plt.setXRange(0, rounds)
         plt.setYRange(min_y, max_y)
         plt.setLabel('left', 'Points')
         plt.setLabel('bottom', 'Rounds')
@@ -375,8 +377,8 @@ class History(QMainWindow):
             j += 1
 
 
-# defines which type of input is expected
 class Type(Enum):
+    """ defines which type of input is expected """
     Prediction = 0
     Results = 1
 
@@ -419,7 +421,7 @@ class GameData:
         self.rounds = 15
 
 
-def track_round(data, inputs):
+def track_round(inputs):
     """ write data from inputs, calculate round outcome and player points """
 
     # if Predictions are given save to player data
@@ -448,13 +450,13 @@ def track_round(data, inputs):
             player.point_history.append(player.points)
             print(player.point_history)
 
-        calculate_player_ranks(player_data)
+        calculate_player_ranks()
 
         # move to next round
         data.round_id += 1
 
 
-def calculate_player_ranks(player_data):
+def calculate_player_ranks():
     """ Calculate and refresh players ranks """
 
     current_points = []
@@ -487,14 +489,15 @@ def error_msg(message):
 
 
 def main():
-    """ Start app, init variables, show main menu """
+    """ Start app, initialize variables, show main menu """
 
     app = QApplication(sys.argv)
     global data, player_data, db, db_file
 
-    # create database to store history
+    # create / open database to store history
     db_file = sqlite3.connect('wizard-history.db')
     db = db_file.cursor()
+
     # if table doesn't exist create from scratch
     db.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name='games' ")
     if db.fetchone()[0] == 0:
@@ -507,7 +510,7 @@ def main():
                               P3_NAME TEXT, P3_PTS TEXT,
                               P4_NAME TEXT, P4_PTS TEXT);''')
 
-    # shoow main menu
+    # show main menu
     mainmenu = MainMenu()
     mainmenu.show()
 
