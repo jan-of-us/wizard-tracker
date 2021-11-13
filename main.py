@@ -360,7 +360,7 @@ class History(QMainWindow):
 
         # plot properties
         plt = self.graphWidget
-        plt.clear()
+        plt.clear()  # clear plot so only one game is displayed
         plt.showGrid(x=True, y=True)
         plt.addLegend()
         plt.setXRange(0, rounds)
