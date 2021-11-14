@@ -18,3 +18,15 @@ When all player names are given the program will launch into it's main routine. 
 From there you can either go back to the main menu, exit the program or start another round with the same players and cards.
 
 If History is chosen in the main menu, a new window will launch where the results of previously played games are displayed and plotted. With the dropdown menu you can change between all games in the database.
+### Screenshots
+#### Main Menu
+![image](https://user-images.githubusercontent.com/89318982/141688102-9c71cc0e-85db-4a52-b738-4b42fce4cdd6.png)
+#### Player names and card selection
+![image](https://user-images.githubusercontent.com/89318982/141688108-f214193b-cae0-4b2e-abfb-5c758d1e6460.png)
+#### Gameplay
+![image](https://user-images.githubusercontent.com/89318982/141688111-d70a6172-9a4c-46ca-908c-b4810b74c904.png)
+![image](https://user-images.githubusercontent.com/89318982/141688112-4758ce4e-3c01-4b78-8031-68a61a5259bc.png)
+#### Game Ending
+![image](https://user-images.githubusercontent.com/89318982/141688114-8c021fa0-d537-4133-a8df-8a7f3850eff1.png)
+#### History Window
+![image](https://user-images.githubusercontent.com/89318982/141688115-6edf91a2-700e-4db0-b438-bd971511994a.png)
